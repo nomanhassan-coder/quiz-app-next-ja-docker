@@ -8,7 +8,6 @@ on:
 jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -34,10 +33,19 @@ jobs:
         username: ${{ secrets.EC2_USER }}
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
+          # 1. Pull the latest image using the correct secret name
           docker pull ${{ secrets.DOCKER_USERNAME }}/quiz-app-next-ja:latest
+          
+          # 2. Stop and remove the old container if it exists
           docker stop quiz-app || true
           docker rm quiz-app || true
+          
+          # 3. Run the new container
+          # Note: Removed the '/' before the image name to fix the 'invalid reference format'
           docker run -d \
             --name quiz-app \
             -p 3000:3000 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/quiz-app-next-ja:latest
+            ${{ secrets.DOCKER_USERNAME }}/quiz-app-next-ja:latest
+            
+          # 4. Cleanup old unused images to save EC2 space
+          docker image prune -f
